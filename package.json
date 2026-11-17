@@ -1,0 +1,51 @@
+{
+  "name": "game-parts",
+  "version": "0.1.0",
+  "description": "Reusable parts for appscom games and the platform lobby: music player, and more to come.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/drsteveday/game-parts.git"
+  },
+  "exports": {
+    "./music": {
+      "types": "./dist/music/index.d.ts",
+      "import": "./dist/music/index.js"
+    },
+    "./assets/*": "./assets/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "assets",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run test",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node tools/build.mjs",
+    "size": "node tools/size.mjs",
+    "format": "prettier --write ."
+  },
+  "peerDependencies": {
+    "three": ">=0.160.0"
+  },
+  "peerDependenciesMeta": {
+    "three": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "prettier": "^3.10.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

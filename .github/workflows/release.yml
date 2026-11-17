@@ -1,0 +1,90 @@
+name: Release
+
+# Makes a release that games can install with no build step:
+#   "game-parts": "github:drsteveday/game-parts#v0.1.0"
+# Two ways to start it:
+# - push a tag `v1.2.3` (package.json "version" must already say 1.2.3), or
+# - run this workflow by hand on `main` (Actions > Release > Run workflow); it tags the
+#   version in package.json.
+# Either way it checks, tests and builds, then points the tag at a commit that also holds
+# the built `dist/` (which `main` never contains) and makes a GitHub release.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Work out the version
+        id: v
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag="v$version"
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "$tag" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version"
+            exit 1
+          fi
+          if [ "$GITHUB_REF_TYPE" != tag ] && git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "::error::$tag already exists; bump the version in package.json first"
+            exit 1
+          fi
+          if [ "$GITHUB_REF_TYPE" = tag ] && git ls-tree -d --name-only HEAD | grep -qx dist; then
+            echo "$tag already holds built files; nothing to do"
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - if: steps.v.outputs.skip != '1'
+        run: npm ci
+      - if: steps.v.outputs.skip != '1'
+        run: npm run check
+      - if: steps.v.outputs.skip != '1'
+        run: npm run build
+      - if: steps.v.outputs.skip != '1'
+        run: npm run size
+
+      - name: Tag a commit that includes dist/
+        if: steps.v.outputs.skip != '1'
+        env:
+          TAG: ${{ steps.v.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --detach
+          git add -f dist
+          git commit -q -m "Release $TAG (built files)"
+          git tag -f -a "$TAG" -m "Release $TAG"
+          git push -f origin "refs/tags/$TAG"
+
+      - name: GitHub release
+        if: steps.v.outputs.skip != '1'
+        env:
+          TAG: ${{ steps.v.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=${TAG#v}
+          # Notes = this version's section of CHANGELOG.md.
+          awk -v v="$version" '$0 ~ "^## "v"( |$)" {on=1; next} /^## / {on=0} on' CHANGELOG.md > notes.md
+          tar -czf "game-parts-$TAG-dist.tgz" dist
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "game-parts-$TAG-dist.tgz" --clobber
+          else
+            gh release create "$TAG" "game-parts-$TAG-dist.tgz" --title "$TAG" --notes-file notes.md
+          fi
