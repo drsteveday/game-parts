@@ -27,7 +27,7 @@ Paste this into the other project's thread when it starts using a part.
    "dependencies": { "game-parts": "github:drsteveday/game-parts#v0.1.0" }
    ```
 
-   Release tags contain the built `dist/`, so no build step runs on install. Each part is
+   The repo is public, so no token is needed anywhere. Release tags contain the built `dist/`, so no build step runs on install. Each part is
    plain ES modules plus `.d.ts` types. Parts that use `three` take the game's own copy
    (peer dependency), so there are never two.
 
@@ -69,22 +69,6 @@ Paste this into the other project's thread when it starts using a part.
 
 5. **Credits.** The music tracks need their `credit` line shown somewhere in the game
    (CC BY); see `src/music/CREDITS.md`.
-
-### While this repo is private
-
-A game's CI (and Dependabot) can only install a private `github:` dependency with a token.
-Making the repo public avoids all of this (nothing in it is secret). If it stays private:
-
-- Create a fine-grained token with **read-only Contents** access to `drsteveday/game-parts`
-  only, and save it as the secret `GAME_PARTS_TOKEN` in each game repo (Actions secrets and
-  Dependabot secrets).
-- In the game's workflow, before `npm ci`:
-
-  ```yaml
-  - run: git config --global url."https://x-access-token:${{ secrets.GAME_PARTS_TOKEN }}@github.com/drsteveday/game-parts".insteadOf "ssh://git@github.com/drsteveday/game-parts"
-  ```
-
-  and the same with `insteadOf "https://github.com/drsteveday/game-parts"`.
 
 ## Part rules
 
