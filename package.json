@@ -1,6 +1,6 @@
 {
   "name": "game-parts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Reusable parts for appscom games and the platform lobby: music player, and more to come.",
   "license": "UNLICENSED",
   "type": "module",
